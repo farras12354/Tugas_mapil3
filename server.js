@@ -185,5 +185,9 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server jalan di http://localhost:${PORT}`));
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Server jalan di http://localhost:${PORT}`));
+}
+
+module.exports = app;
