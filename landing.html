@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TabunganKu</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-8px); }
+  }
+  .fade-in { animation: fadeUp 0.5s ease both 0.1s; }
+  .bob     { animation: bob 2.8s ease-in-out infinite; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+
+  <div class="fade-in bg-white rounded-2xl shadow-md p-10 w-full max-w-sm text-center text-slate-800">
+
+    <div class="text-5xl mb-5 bob">💰</div>
+    <h1 class="text-3xl font-bold mb-2">TabunganKu</h1>
+    <p class="text-slate-400 text-sm mb-8">Catat transaksi, pantau target tabungan, dan kelola keuanganmu dengan mudah.</p>
+
+    <a href="login.html"
+       class="block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition mb-8">
+      Mulai →
+    </a>
+
+    <div class="flex justify-around text-xs text-slate-400 border-t border-slate-100 pt-6">
+      <div class="text-center">
+        <p class="text-xl mb-1">📊</p>
+        <p>Ringkasan</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xl mb-1">🎯</p>
+        <p>Target</p>
+      </div>
+      <div class="text-center">
+        <p class="text-xl mb-1">📋</p>
+        <p>Riwayat</p>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

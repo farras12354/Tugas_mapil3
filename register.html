@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daftar — TabunganKu</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fadeUp 0.4s ease both; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+
+  <div class="fade-in bg-white rounded-2xl shadow-md p-8 w-full max-w-sm text-slate-800">
+
+    <div class="text-center mb-6">
+      <p class="text-4xl mb-3">💰</p>
+      <h1 class="text-2xl font-bold">Daftar</h1>
+      <p class="text-slate-400 text-sm mt-1">Buat akun baru</p>
+    </div>
+
+    <form id="registerForm" class="space-y-4">
+      <div>
+        <label class="block text-sm text-slate-500 mb-1">Nama</label>
+        <input id="nama" type="text" placeholder="Nama lengkap"
+          class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      </div>
+      <div>
+        <label class="block text-sm text-slate-500 mb-1">Username</label>
+        <input id="username" type="text" placeholder="username"
+          class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      </div>
+      <div>
+        <label class="block text-sm text-slate-500 mb-1">Password</label>
+        <input id="password" type="password" placeholder="••••••••"
+          class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      </div>
+      <p id="errMsg" class="text-red-500 text-xs hidden"></p>
+      <p id="okMsg" class="text-green-600 text-xs hidden"></p>
+      <button type="submit"
+        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition">
+        Daftar
+      </button>
+    </form>
+
+    <p class="text-center text-sm text-slate-400 mt-5">
+      Sudah punya akun?
+      <a href="login.html" class="text-indigo-600 font-medium hover:underline">Masuk</a>
+    </p>
+    <p class="text-center text-sm text-slate-400 mt-2">
+      <a href="landing.html" class="hover:underline">← Kembali</a>
+    </p>
+
+  </div>
+
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nama     = document.getElementById('nama').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const err = document.getElementById('errMsg');
+      const ok  = document.getElementById('okMsg');
+      err.classList.add('hidden');
+      ok.classList.add('hidden');
+
+      try {
+        const r = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nama, username, password })
+        });
+        const d = await r.json();
+        if (!r.ok) { err.textContent = d.error; err.classList.remove('hidden'); return; }
+        ok.textContent = 'Akun berhasil dibuat! Mengarahkan ke halaman masuk...';
+        ok.classList.remove('hidden');
+        setTimeout(() => window.location.href = 'login.html', 1500);
+      } catch {
+        err.textContent = 'Terjadi kesalahan, coba lagi.';
+        err.classList.remove('hidden');
+      }
+    });
+  </script>
+
+</body>
+</html>
