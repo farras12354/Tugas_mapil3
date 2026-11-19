@@ -1,68 +1,226 @@
 const $ = (id) => document.getElementById(id);
-const forms = { login: $('login'), register: $('register') };
-const text = {
-  login: ['Selamat datang kembali', 'Masuk untuk melanjutkan'],
-  register: ['Buat akun baru', 'Isi data untuk mulai']
+
+// ── Format Rupiah ─────────────────────────────────────────────────────────────
+const rp = (n) => 'Rp ' + Number(n).toLocaleString('id-ID');
+
+// ── Modal helpers ─────────────────────────────────────────────────────────────
+function openModal(id) {
+  const m = $(id);
+  m.classList.remove('hidden');
+  m.style.display = 'flex';
+}
+function closeModal(id) {
+  const m = $(id);
+  m.classList.add('hidden');
+  m.style.display = '';
+}
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.onclick = () => closeModal(btn.dataset.close);
+});
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let jenisTrx = 'setor';
+let kategoriList = [];
+let targetList = [];
+
+// ── Load Ringkasan ─────────────────────────────────────────────────────────────
+async function loadRingkasan() {
+  try {
+    const r = await fetch('/api/ringkasan');
+    const d = await r.json();
+    $('saldo').textContent = rp(d.saldo);
+    $('setor').textContent = rp(d.total_setor);
+    $('tarik').textContent = rp(d.total_tarik);
+  } catch (e) { console.error('ringkasan:', e); }
+}
+
+// ── Load Transaksi ─────────────────────────────────────────────────────────────
+async function loadTransaksi() {
+  try {
+    const r = await fetch('/api/transaksi');
+    const data = await r.json();
+    const tbody = $('riwayat');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-slate-400">Belum ada transaksi</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(t => `
+      <tr class="border-b border-slate-100 dark:border-slate-700">
+        <td class="py-2 pr-2">${t.tanggal}</td>
+        <td class="py-2 pr-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium ${t.jenis === 'setor' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+            ${t.jenis}
+          </span>
+        </td>
+        <td class="py-2 pr-2">${t.nama_kategori || '-'}</td>
+        <td class="py-2 pr-2">${t.nama_target || '-'}</td>
+        <td class="py-2 pr-2">${t.sumber_rekening || '-'}</td>
+        <td class="py-2 pr-2 font-medium">${rp(t.jumlah)}</td>
+        <td class="py-2">
+          <button onclick="hapusTrx(${t.id_transaksi})" class="text-red-400 hover:text-red-600 text-xs">Hapus</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) { console.error('transaksi:', e); }
+}
+
+// ── Load Target ───────────────────────────────────────────────────────────────
+async function loadTarget() {
+  try {
+    const r = await fetch('/api/target');
+    targetList = await r.json();
+    const container = $('targets');
+    if (!targetList.length) {
+      container.innerHTML = '<p class="text-slate-400 text-sm">Belum ada target</p>';
+    } else {
+      container.innerHTML = targetList.map(t => {
+        const pct = Math.min(100, Math.round((t.terkumpul / t.target_dana) * 100));
+        return `
+          <div class="mb-4">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="font-medium">${t.nama_target}</span>
+              <button onclick="hapusTarget(${t.id_target})" class="text-red-400 hover:text-red-600 text-xs">Hapus</button>
+            </div>
+            <div class="flex justify-between text-xs text-slate-500 mb-1">
+              <span>${rp(t.terkumpul)}</span><span>${rp(t.target_dana)}</span>
+            </div>
+            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+              <div class="bg-indigo-500 h-2 rounded-full" style="width:${pct}%"></div>
+            </div>
+            <p class="text-xs text-slate-400 mt-1 text-right">${pct}%</p>
+          </div>
+        `;
+      }).join('');
+    }
+    // Update dropdown target di modal transaksi
+    const sel = $('target');
+    sel.innerHTML = '<option value="">-- Tanpa Target --</option>' +
+      targetList.map(t => `<option value="${t.id_target}">${t.nama_target}</option>`).join('');
+  } catch (e) { console.error('target:', e); }
+}
+
+// ── Load Kategori ─────────────────────────────────────────────────────────────
+async function loadKategori() {
+  try {
+    const r = await fetch('/api/kategori');
+    kategoriList = await r.json();
+    const sel = $('kategori');
+    sel.innerHTML = kategoriList.map(k =>
+      `<option value="${k.id_kategori}">${k.nama_kategori}</option>`
+    ).join('');
+  } catch (e) { console.error('kategori:', e); }
+}
+
+// ── Hapus Transaksi ───────────────────────────────────────────────────────────
+async function hapusTrx(id) {
+  if (!confirm('Hapus transaksi ini?')) return;
+  await fetch('/api/transaksi/' + id, { method: 'DELETE' });
+  loadAll();
+}
+
+// ── Hapus Target ──────────────────────────────────────────────────────────────
+async function hapusTarget(id) {
+  if (!confirm('Hapus target ini?')) return;
+  await fetch('/api/target/' + id, { method: 'DELETE' });
+  loadTarget();
+}
+
+// ── Load All ──────────────────────────────────────────────────────────────────
+function loadAll() {
+  loadRingkasan();
+  loadTransaksi();
+  loadTarget();
+  loadKategori();
+}
+
+// ── Button + Transaksi ────────────────────────────────────────────────────────
+$('btnTrx').onclick = () => {
+  // Set tanggal hari ini
+  $('tanggal').value = new Date().toISOString().slice(0, 10);
+  setJenis('setor');
+  openModal('mTrx');
 };
 
-function switchTo(name) {
-  for (const k in forms) {
-    forms[k].classList.toggle('hidden', k !== name);
-    $('tab-' + k).className = 'py-2 rounded-md ' + (k === name ? 'bg-white shadow text-slate-800' : 'text-slate-500');
-  }
-  $('title').textContent = text[name][0];
-  $('subtitle').textContent = text[name][1];
-  $('msg').classList.add('hidden');
+// ── Jenis Setor / Tarik ───────────────────────────────────────────────────────
+function setJenis(j) {
+  jenisTrx = j;
+  $('bSetor').className = 'flex-1 py-2 rounded-lg text-sm font-medium ' +
+    (j === 'setor' ? 'bg-green-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300');
+  $('bTarik').className = 'flex-1 py-2 rounded-lg text-sm font-medium ' +
+    (j === 'Tarik' ? 'bg-red-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300');
 }
-$('tab-login').onclick = () => switchTo('login');
-$('tab-register').onclick = () => switchTo('register');
+$('bSetor').onclick = () => setJenis('setor');
+$('bTarik').onclick = () => setJenis('Tarik');
 
-document.querySelectorAll('.toggle').forEach((b) => {
-  b.onclick = () => {
-    const input = b.previousElementSibling;
-    const hidden = input.type === 'password';
-    input.type = hidden ? 'text' : 'password';
-    b.textContent = hidden ? 'Sembunyi' : 'Lihat';
-  };
-});
+// ── Tambah Kategori Baru ──────────────────────────────────────────────────────
+$('addKat').onclick = async () => {
+  const nama = prompt('Nama kategori baru:');
+  if (!nama) return;
+  const r = await fetch('/api/kategori', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nama_kategori: nama })
+  });
+  if (r.ok) await loadKategori();
+};
 
-function setError(input, message) {
-  const err = input.parentElement.classList.contains('relative')
-    ? input.parentElement.nextElementSibling
-    : input.nextElementSibling;
-  if (err) err.textContent = message || '';
-  input.classList.toggle('border-red-500', !!message);
-  return !message;
-}
+// ── Simpan Transaksi ──────────────────────────────────────────────────────────
+$('simpan').onclick = async () => {
+  const tanggal = $('tanggal').value;
+  const id_kategori = $('kategori').value;
+  const id_target = $('target').value || null;
+  const jumlah = $('jumlah').value;
+  const sumber_rekening = $('rekening').value;
+  const catatan = $('catatan').value;
 
-const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-
-forms.login.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const f = e.target;
-  const ok = [
-    setError(f.email, emailOk(f.email.value.trim()) ? '' : 'Email tidak valid'),
-    setError(f.password, f.password.value ? '' : 'Password wajib diisi')
-  ];
-  if (ok.every(Boolean)) {
-    // TODO: kirim ke API login
-    $('msg').textContent = 'Login valid (belum terhubung ke backend)';
-    $('msg').classList.remove('hidden');
+  if (!tanggal || !id_kategori || !jumlah) {
+    alert('Tanggal, kategori, dan jumlah wajib diisi!');
+    return;
   }
-});
 
-forms.register.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const f = e.target;
-  const ok = [
-    setError(f.nama, f.nama.value.trim().length >= 2 ? '' : 'Nama minimal 2 karakter'),
-    setError(f.email, emailOk(f.email.value.trim()) ? '' : 'Email tidak valid'),
-    setError(f.password, f.password.value.length >= 8 ? '' : 'Password minimal 8 karakter'),
-    setError(f.konfirmasi, f.konfirmasi.value === f.password.value && f.konfirmasi.value ? '' : 'Password tidak sama')
-  ];
-  if (ok.every(Boolean)) {
-    // TODO: kirim ke API register
-    $('msg').textContent = 'Register valid (belum terhubung ke backend)';
-    $('msg').classList.remove('hidden');
+  const r = await fetch('/api/transaksi', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tanggal, jenis: jenisTrx, id_kategori, id_target, jumlah, sumber_rekening, catatan })
+  });
+  if (r.ok) {
+    closeModal('mTrx');
+    // Reset form
+    $('jumlah').value = '';
+    $('rekening').value = '';
+    $('catatan').value = '';
+    loadAll();
+  } else {
+    const d = await r.json();
+    alert(d.error || 'Gagal menyimpan transaksi');
   }
-});
+};
+
+// ── Button + Target ───────────────────────────────────────────────────────────
+$('btnTarget').onclick = () => openModal('mTarget');
+
+$('tSimpan').onclick = async () => {
+  const nama_target = $('tNama').value.trim();
+  const target_dana = $('tDana').value;
+  if (!nama_target || !target_dana) {
+    alert('Nama target dan dana wajib diisi!');
+    return;
+  }
+  const r = await fetch('/api/target', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nama_target, target_dana })
+  });
+  if (r.ok) {
+    closeModal('mTarget');
+    $('tNama').value = '';
+    $('tDana').value = '';
+    loadTarget();
+  } else {
+    const d = await r.json();
+    alert(d.error || 'Gagal menyimpan target');
+  }
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadAll();
