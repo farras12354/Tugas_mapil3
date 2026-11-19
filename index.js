@@ -74,20 +74,29 @@ async function loadTarget() {
       container.innerHTML = '<p class="text-slate-400 text-sm">Belum ada target</p>';
     } else {
       container.innerHTML = targetList.map(t => {
-        const pct = Math.min(100, Math.round((t.terkumpul / t.target_dana) * 100));
+        const terkumpul = Number(t.terkumpul) || 0;
+        const targetDana = Number(t.target_dana) || 1;
+        const rawPct = (terkumpul / targetDana) * 100;
+        const pctDisplay = rawPct > 0 && rawPct < 1 ? rawPct.toFixed(2) : Math.round(rawPct);
+        const barWidth = terkumpul > 0 ? Math.max(3, Math.min(100, rawPct)) : 0;
+
         return `
-          <div class="mb-4">
-            <div class="flex justify-between text-sm mb-1">
-              <span class="font-medium">${t.nama_target}</span>
-              <button onclick="hapusTarget(${t.id_target})" class="text-red-400 hover:text-red-600 text-xs">Hapus</button>
+          <div class="mb-4 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg border border-slate-200 dark:border-slate-700/80">
+            <div class="flex justify-between items-center text-sm mb-1">
+              <span class="font-semibold text-slate-800 dark:text-white">${t.nama_target}</span>
+              <div class="flex items-center gap-2">
+                <button onclick="setorKeTarget(${t.id_target})" class="text-indigo-600 dark:text-indigo-400 hover:underline text-xs font-medium">+ Isi Dana</button>
+                <button onclick="hapusTarget(${t.id_target})" class="text-red-400 hover:text-red-600 text-xs">Hapus</button>
+              </div>
             </div>
-            <div class="flex justify-between text-xs text-slate-500 mb-1">
-              <span>${rp(t.terkumpul)}</span><span>${rp(t.target_dana)}</span>
+            <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+              <span class="font-medium text-indigo-600 dark:text-indigo-400">${rp(terkumpul)}</span>
+              <span>Target: ${rp(targetDana)}</span>
             </div>
-            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-              <div class="bg-indigo-500 h-2 rounded-full" style="width:${pct}%"></div>
+            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+              <div class="bg-indigo-600 dark:bg-indigo-500 h-2.5 rounded-full transition-all duration-500" style="width:${barWidth}%"></div>
             </div>
-            <p class="text-xs text-slate-400 mt-1 text-right">${pct}%</p>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 text-right">${pctDisplay}%</p>
           </div>
         `;
       }).join('');
@@ -97,6 +106,13 @@ async function loadTarget() {
     sel.innerHTML = '<option value="">-- Tanpa Target --</option>' +
       targetList.map(t => `<option value="${t.id_target}">${t.nama_target}</option>`).join('');
   } catch (e) { console.error('target:', e); }
+}
+
+function setorKeTarget(id) {
+  $('tanggal').value = new Date().toISOString().slice(0, 10);
+  setJenis('setor');
+  openModal('mTrx');
+  $('target').value = id;
 }
 
 // ── Load Kategori ─────────────────────────────────────────────────────────────
